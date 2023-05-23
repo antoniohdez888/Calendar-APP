@@ -5,6 +5,7 @@ import { authSlice } from "../../src/store";
 import { initialState, notAuthenticatedState } from "../fixtures/authStates";
 import { Provider } from "react-redux";
 import { testUserCredentials } from "../fixtures/testUser";
+import { calendarApi } from "../../src/api";
 
 const getMockStore = ( initialState ) => {
     return configureStore({
@@ -92,12 +93,21 @@ describe('pruebas en useAuthStore', () => {
 
     test('startRegister debe de crear un nuevo usuario', async() => {
 
-        const newUser = { email: 'false@gmail.com', password: '123456', name: 'Test user' };
+        const newUser = { email: 'false-user@gmail.com', password: '123456', name: 'Test user' };
 
         const mockStore = getMockStore({ ...notAuthenticatedState });
         const { result } = renderHook( () => useAuthStore(), {
             wrapper: ({ children }) => <Provider store={ mockStore } >{ children }</Provider>
         });
+
+        const spy = jest.spyOn( calendarApi, 'post' ).mockReturnValue({
+            data:{
+                ok: true,
+                uid: "ALGUN-ID",
+                name: "Test",
+                token: "ALGUN-TOKEN"
+            }
+        })
 
         await act(async () => {
             await result.current.startRegister(newUser);
@@ -106,6 +116,14 @@ describe('pruebas en useAuthStore', () => {
         const { errorMessage, status, user } = result.current;
 
         console.log({ errorMessage, status, user });
+
+        expect({ errorMessage, status, user }).toEqual({
+            errorMessage: undefined,
+            status: 'authenticated',
+            user: { name: 'Test', uid: 'ALGUN-ID' }
+        })
+
+        spy.mockRestore();
 
     });
 })
