@@ -115,8 +115,6 @@ describe('pruebas en useAuthStore', () => {
 
         const { errorMessage, status, user } = result.current;
 
-        console.log({ errorMessage, status, user });
-
         expect({ errorMessage, status, user }).toEqual({
             errorMessage: undefined,
             status: 'authenticated',
@@ -126,4 +124,70 @@ describe('pruebas en useAuthStore', () => {
         spy.mockRestore();
 
     });
+
+    test('startRegister debe de fallar el registro', async() => {
+
+        const mockStore = getMockStore({ ...notAuthenticatedState });
+        const { result } = renderHook( () => useAuthStore(), {
+            wrapper: ({ children }) => <Provider store={ mockStore } >{ children }</Provider>
+        });
+
+        await act(async () => {
+            await result.current.startRegister(testUserCredentials);
+        });
+
+        const { errorMessage, status, user } = result.current;
+
+        expect({ errorMessage, status, user }).toEqual({
+            errorMessage: 'Correo ya en existencia',
+            status: 'not-authenticated',
+            user: {}
+        })
+
+    })
+
+    test('checkAuthToken debe de fallar si no hay token', async() => {
+
+        const mockStore = getMockStore({ ...initialState });
+        const { result } = renderHook( () => useAuthStore(), {
+            wrapper: ({ children }) => <Provider store={ mockStore } >{ children }</Provider>
+        });
+
+        await act(async () => {
+            await result.current.checkAuthToken();
+        });
+
+        const { errorMessage, status, user } = result.current;
+
+        expect({ errorMessage, status, user }).toEqual({
+            errorMessage: undefined,
+            status: 'not-authenticated',
+            user: {}
+        })
+
+    })
+
+    test('checkAuthToken debe de autenticar el usuario si hay un token', async() => {
+
+        const { data } = await calendarApi.post( '/auth', testUserCredentials );
+        localStorage.setItem( 'token', data.token );
+
+        const mockStore = getMockStore({ ...initialState });
+        const { result } = renderHook( () => useAuthStore(), {
+            wrapper: ({ children }) => <Provider store={ mockStore } >{ children }</Provider>
+        });
+
+        await act(async () => {
+            await result.current.checkAuthToken();
+        });
+
+        const { errorMessage, status, user } = result.current;
+
+        expect({ errorMessage, status, user }).toEqual({
+            errorMessage: undefined,
+            status: 'authenticated',
+            user: { name: 'Test', uid: '63f3a2f3e6f368d5b8416fb2' }
+        })
+
+    })
 })
